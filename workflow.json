@@ -1,0 +1,401 @@
+{
+  "name": "Voicenotes - send prompts",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_PATH_HERE",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -440,
+        -40
+      ],
+      "id": "7fdda682-e8ee-44c6-bf06-ec541a24c65b",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_ID_HERE"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "options": {
+          "systemMessage": "Your task is to act as a helpful assistant to the user. You'll be receiving prompts through a workflow, so should respond with a detailed and thorough answer adhering to a single turn workflow. The user likes to receive well structured documents with headers to delineate between sections and when comparing products or information likes to receive a summary table at the end of the document providing a comparison matrix as well as a executive summary section at the start of the document. Deliver thorough responses according to these principles, ensure accurate information and provide URLs referenced at the end of the documents in a separate sources section."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -40
+      ],
+      "id": "0b0463bf-f743-4144-9437-899dc2107e41",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        200
+      ],
+      "id": "4a13883f-e859-48d6-9388-ae89906186d9",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_OPENROUTER_CREDENTIAL_ID",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0dd365bc-aeee-4f50-bc0d-780321756fa3",
+              "name": "created",
+              "value": "={{ $json.body.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "e825ab7e-cc54-4695-a825-a3d1553510e5",
+              "name": "note_title",
+              "value": "={{ $json.body.data.title }}",
+              "type": "string"
+            },
+            {
+              "id": "4225bf89-fa21-4491-8b8a-4df7bbf2e819",
+              "name": "prompt",
+              "value": "={{ $json.body.data.transcript }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -220,
+        -40
+      ],
+      "id": "4a5008e9-b7e2-4252-b459-8b1f50d50ca7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7b71ef88-32ed-4cea-a291-b314ac19505b",
+              "name": "note_title",
+              "value": "={{ $('Edit Fields').item.json.note_title }}",
+              "type": "string"
+            },
+            {
+              "id": "fd4bd3e4-702b-49a4-83c7-bb1ef316c106",
+              "name": "prompt",
+              "value": "={{ $('Edit Fields').item.json.prompt }}",
+              "type": "string"
+            },
+            {
+              "id": "fc6e2202-d7f7-4e2c-9539-88eaf0a5dac4",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "f2e05227-be85-45b5-a4f9-bd6e483b48bf",
+              "name": "created",
+              "value": "={{ $('Webhook').item.json.body.timestamp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        -220
+      ],
+      "id": "39eecfc9-c96d-4a53-884e-e0465ec7650a",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "authentication": "nocoDbApiToken",
+        "operation": "create",
+        "projectId": "YOUR_NOCODB_PROJECT_ID",
+        "table": "YOUR_NOCODB_PROMPTS_TABLE_ID",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "title",
+              "fieldValue": "={{ $json.note_title }}"
+            },
+            {
+              "fieldName": "prompt",
+              "fieldValue": "={{ $json.prompt }}"
+            },
+            {
+              "fieldName": "created",
+              "fieldValue": "={{ $json.created }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.nocoDb",
+      "typeVersion": 3,
+      "position": [
+        980,
+        -220
+      ],
+      "id": "cf163b6e-fc37-4e60-98ed-8dbc8ad44797",
+      "name": "Save Prompt",
+      "credentials": {
+        "nocoDbApiToken": {
+          "id": "YOUR_NOCODB_CREDENTIAL_ID",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "nocoDbApiToken",
+        "operation": "create",
+        "projectId": "YOUR_NOCODB_PROJECT_ID",
+        "table": "YOUR_NOCODB_OUTPUTS_TABLE_ID",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "title",
+              "fieldValue": "={{ $json.note_title }}"
+            },
+            {
+              "fieldName": "prompt",
+              "fieldValue": "={{ $json.prompt }}"
+            },
+            {
+              "fieldName": "output",
+              "fieldValue": "={{ $json.output }}"
+            },
+            {
+              "fieldName": "created",
+              "fieldValue": "={{ $json.created }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.nocoDb",
+      "typeVersion": 3,
+      "position": [
+        600,
+        80
+      ],
+      "id": "5f4e2b8a-9c1d-4e3f-8b7a-6d5c4e3f2a1b",
+      "name": "Save Output",
+      "credentials": {
+        "nocoDbApiToken": {
+          "id": "YOUR_NOCODB_CREDENTIAL_ID",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        800,
+        80
+      ],
+      "id": "ce569030-9299-4312-86e5-38950ed6cf53",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d3edb55b-54f0-4136-8e20-768f038ca3f8",
+              "name": "title",
+              "value": "={{ $('Webhook').item.json.body.data.title }}",
+              "type": "string"
+            },
+            {
+              "id": "8f2a1b3c-4d5e-6f7g-8h9i-0j1k2l3m4n5o",
+              "name": "prompt",
+              "value": "={{ $('Edit Fields').item.json.prompt }}",
+              "type": "string"
+            },
+            {
+              "id": "9e8d7c6b-5a49-3827-1605-948372615038",
+              "name": "output",
+              "value": "={{ $json.html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1000,
+        80
+      ],
+      "id": "de5e068a-bdb0-44c7-9301-3939efd1557b",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ $json.title }} (Voicenotes prompt)",
+        "message": "=<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>{{ $json.title }}</title>\n</head>\n<body style=\"margin:0; padding:20px; font-family:Arial, sans-serif; background-color:#f9f9f9; color:#333;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:600px; margin:0 auto; background:#ffffff; border:1px solid #ddd; border-radius:6px;\">\n    <tr>\n      <td style=\"padding:20px 30px;\">\n        <h1 style=\"font-size:24px; color:#222; margin-top:0;\">{{ $json.title }}</h1>\n\n        <h2 style=\"font-size:18px; color:#555; margin-bottom:10px;\">Prompt</h2>\n        <div style=\"background-color:#f1f1f1; border-left:4px solid #4CAF50; padding:12px 16px; margin-bottom:20px; white-space:pre-wrap;\">\n         {{ $json.prompt }}\n        </div>\n\n        <h2 style=\"font-size:18px; color:#555; margin-bottom:10px;\">AI Response</h2>\n        <div style=\"background-color:#eef6ff; border-left:4px solid #2196F3; padding:12px 16px; white-space:pre-wrap;\">\n        {{ $json.output }}\n        </div>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>\n",
+        "options": {
+          "senderName": "Your App Name"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1220,
+        80
+      ],
+      "id": "d16cba15-86aa-4ddc-97db-0bf9e032aa81",
+      "name": "Send a message",
+      "webhookId": "YOUR_GMAIL_WEBHOOK_ID",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Save Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Prompt": {
+      "main": [
+        [
+          {
+            "node": "Save Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Output": {
+      "main": [
+        []
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "REDACTED_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REDACTED_INSTANCE_ID"
+  },
+  "id": "REDACTED_WORKFLOW_ID",
+  "tags": []
+}
